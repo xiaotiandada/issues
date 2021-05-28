@@ -6,8 +6,6 @@ type listForRepoType = RestEndpointMethodTypes["issues"]["listForRepo"]["paramet
 // https://docs.github.com/en/rest/reference/issues#list-repository-issues
 // https://octokit.github.io/rest.js/v18
 
-console.log('process.env.TOKEN', process.env.TOKEN)
-
 const octokit = new Octokit({
   auth: process.env.TOKEN
 });

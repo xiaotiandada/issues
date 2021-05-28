@@ -4,7 +4,7 @@ const rest_1 = require("@octokit/rest");
 // https://docs.github.com/en/rest/reference/issues#list-repository-issues
 // https://octokit.github.io/rest.js/v18
 const octokit = new rest_1.Octokit({
-    auth: ''
+    auth: process.env.TOKEN
 });
 const owner = 'xiaotiandada';
 const repo = 'blog';
