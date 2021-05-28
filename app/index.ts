@@ -19,13 +19,13 @@ const path = 'README.md'
  * @returns
  */
 const push = async (contents: string) => {
-
   try {
     const { status, data } = await octokit.repos.getContent({
       owner,
       repo,
       path,
     });
+    // console.log(data)
 
     if (status !== 200) {
       console.log('fail', status)
@@ -42,6 +42,7 @@ const push = async (contents: string) => {
       sha: data.sha,
     });
     if (pushStatus === 200) {
+    // console.log(pushData)
       console.log(`push success, url: ${pushData.content.html_url}`)
     } else {
       console.log('fail', pushStatus)
@@ -54,10 +55,11 @@ const push = async (contents: string) => {
  * process markdown
  * @param data issues list
  */
-const processMd = (data: Array<listForRepoType>) => {
+const processMd = ({data, name, description}: { data: Array<listForRepoType>, name: string, description: string }) => {
   let md =
 `<div align="center">
-<h1>Blog</h1>
+<h1>${name}</h1>
+<p>${description}</p>
 </div>\n\n`
 
   data.map((i) => {
@@ -70,6 +72,7 @@ const processMd = (data: Array<listForRepoType>) => {
     // [xxx](xxx) [ xx ]
     md += `[#${i.number} ${i.title}](${i.html_url}) ${ label ? '[' + label + ']' : '' }\n\n`
   })
+
   // console.log('md', md)
   push(md)
 }
@@ -121,7 +124,12 @@ const fetch = async () => {
         console.log('fail', status)
       }
     }
-    processMd(list)
+
+    processMd({
+      data: list,
+      name: (respo as any).name,
+      description: (respo as any).description,
+    })
   } catch (e) {
     console.log('fetch', e.toString())
   }
