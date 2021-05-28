@@ -7,7 +7,7 @@ type listForRepoType = RestEndpointMethodTypes["issues"]["listForRepo"]["paramet
 // https://octokit.github.io/rest.js/v18
 
 const octokit = new Octokit({
-  auth: ''
+  auth: process.env.TOKEN
 });
 const owner = 'xiaotiandada'
 const repo = 'blog'
