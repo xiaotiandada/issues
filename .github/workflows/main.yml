@@ -34,9 +34,7 @@ jobs:
       
       # Install
       - name: Build
-        run: npm install
-
-      # Runs a single command using the runners shell
-      - name: Run async issues
-        run: TOKEN=${{ secrets.TOKEN }} node ./app/inndex.js
+        run: |
+          npm install
+          TOKEN=${{ secrets.TOKEN }} node ./app/inndex.js
 
