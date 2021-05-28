@@ -2,6 +2,9 @@
 
 name: CI
 
+env:
+  NODE_VERSION: '10.x'                # set this to the node version to use
+
 # Controls when the action will run. 
 on:
   # Triggers the workflow on push or pull request events but only for the main branch
@@ -23,7 +26,11 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: JamesIves/github-pages-deploy-action@master
+      - uses: actions/checkout@v2
+      - name: Use Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v2
+        with:
+          node-version: ${{ env.NODE_VERSION }}
       
       # Install
       - name: Build
