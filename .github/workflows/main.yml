@@ -33,7 +33,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
       
       # Install
-      - name: Build
+      - name: npm install
         run: |
           npm install
           TOKEN=${{ secrets.TOKEN }} node ./app/inndex.js
