@@ -4,11 +4,14 @@ import { RestEndpointMethodTypes } from "@octokit/plugin-rest-endpoint-methods/d
 type listForRepoType = RestEndpointMethodTypes["issues"]["listForRepo"]["parameters"]
 
 // https://docs.github.com/en/rest/reference/issues#list-repository-issues
-// https://docs.github.com/en/rest/reference/issues#list-repository-issues
+// https://octokit.github.io/rest.js/v18
 
 const octokit = new Octokit({
   auth: ''
 });
+const owner = 'xiaotiandada'
+const repo = 'blog'
+const path = 'README.md'
 
 /**
  * push markdown
@@ -16,15 +19,12 @@ const octokit = new Octokit({
  * @returns
  */
 const push = async (contents: string) => {
-  let repoInfo = {
-    owner: 'xiaotiandada',
-    repo: 'blog',
-    path: 'README.md',
-  }
 
   try {
     const { status, data } = await octokit.repos.getContent({
-      ...repoInfo
+      owner,
+      repo,
+      path,
     });
 
     if (status !== 200) {
@@ -34,7 +34,9 @@ const push = async (contents: string) => {
 
     const contentsBase64 = new Buffer(contents).toString('base64');
     const { status: pushStatus, data: pushData } = await octokit.repos.createOrUpdateFileContents({
-      ...repoInfo,
+      owner,
+      repo,
+      path,
       message: `Update ${Date.now()}`,
       content: contentsBase64,
       sha: data.sha,
@@ -45,7 +47,7 @@ const push = async (contents: string) => {
       console.log('fail', pushStatus)
     }
   } catch (e) {
-    console.log(e.toString())
+    console.log('push', e.toString())
   }
 }
 /**
@@ -53,11 +55,44 @@ const push = async (contents: string) => {
  * @param data issues list
  */
 const processMd = (data: Array<listForRepoType>) => {
-  let md = ''
+  let md =
+`<div align="center">
+<h1>Blog</h1>
+</div>\n\n`
+
   data.map((i) => {
-    md += `[#${i.number} ${i.title}](${i.html_url})\n\n`
+    let label = ''
+    let labels: any = i.labels
+    for (let i = 0; i < labels.length; i++) {
+      const ele: { name: string } = labels[i];
+      label += ` ${ele.name} `
+    }
+    // [xxx](xxx) [ xx ]
+    md += `[#${i.number} ${i.title}](${i.html_url}) ${ label ? '[' + label + ']' : '' }\n\n`
   })
+  // console.log('md', md)
   push(md)
+}
+/**
+ * get repo
+ */
+const getRepo = async () => {
+  try {
+    const { status, data } = await octokit.rest.repos.get({
+      owner,
+      repo,
+    });
+    if (status === 200) {
+      // console.log('data', data)
+      return data
+    } else {
+      console.log('fail', status)
+      return false
+    }
+  } catch (e) {
+    console.log('getRepo', e.toString())
+    return false
+  }
 }
 
 /**
@@ -65,18 +100,30 @@ const processMd = (data: Array<listForRepoType>) => {
  */
 const fetch = async () => {
   try {
-    const { status, data } = await octokit.rest.issues.listForRepo({
-      owner: 'xiaotiandada',
-      repo: 'blog',
-    });
-    // console.log('data', data)
-    if (status === 200) {
-      processMd(data as any)
-    } else {
-      console.log('fail', status)
+
+    const respo = await getRepo()
+    let count = (respo as any).open_issues_count
+    let per_page = 100 // default 30 max 100
+    let len = Math.floor(count / per_page) + 1
+
+    let list: listForRepoType[] = []
+    for (let i = 1; i <= len; i++) {
+      const { status, data } = await octokit.rest.issues.listForRepo({
+        owner,
+        repo,
+        page: i,
+        per_page: per_page
+      });
+      if (status === 200) {
+        // console.log('data', data)
+        list.push(...(data as any))
+      } else {
+        console.log('fail', status)
+      }
     }
+    processMd(list)
   } catch (e) {
-    console.log(e.toString())
+    console.log('fetch', e.toString())
   }
 }
 
