@@ -31,4 +31,3 @@ jobs:
       - run: npm install
       - run: TOKEN=${{ secrets.TOKEN }} node ./dist/index.js
       
-
