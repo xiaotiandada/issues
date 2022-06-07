@@ -4,6 +4,7 @@
 
 - 因为设置了定时，频繁的提交污染了我的 `contributions` 记录（设置的时间 1day 所以每天都会有一条记录提交）。
 - 设置出发条件为 `on: [issues, issue_comment]`
+- [the-githubtoken-in-github-actions-how-it-works-change-permissions-customizations-3cgp](https://dev.to/github/the-githubtoken-in-github-actions-how-it-works-change-permissions-customizations-3cgp) 使用`secrets.GITHUB_TOKEN`
 
 
 ### 其他
