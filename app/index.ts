@@ -1,81 +1,318 @@
 import { Octokit } from '@octokit/rest';
-import { RestEndpointMethodTypes } from "@octokit/plugin-rest-endpoint-methods/dist-types/generated/parameters-and-response-types";
+import { compareAsc } from 'date-fns';
+import { cloneDeep } from 'lodash';
+import { Feed } from 'feed';
+import MarkdownIt = require('markdown-it');
+import * as fs from 'fs';
 
-type listForRepoType = RestEndpointMethodTypes["issues"]["listForRepo"]["parameters"]
+const markdownIt = new MarkdownIt({
+  html: true,
+  linkify: true,
+});
+
+interface Labels {
+  id: number;
+  node_id: string;
+  url: string;
+  name: string;
+  description: string;
+  color: string;
+  default: boolean;
+}
+
+interface Milestone {
+  url: string;
+  html_url: string;
+  labels_url: string;
+  id: number;
+  node_id: string;
+  number: number;
+  state: string;
+  title: string;
+  description: string;
+  creator: User;
+  open_issues: number;
+  closed_issues: number;
+  created_at: string;
+  updated_at: string;
+  closed_at: string;
+  due_on: string;
+}
+
+interface PullRequest {
+  url: string;
+  html_url: string;
+  diff_url: string;
+  patch_url: string;
+}
+
+interface RootInterface {
+  id: number;
+  node_id: string;
+  url: string;
+  repository_url: string;
+  labels_url: string;
+  comments_url: string;
+  events_url: string;
+  html_url: string;
+  number: number;
+  state: string;
+  title: string;
+  body: string;
+  user: User;
+  labels: Labels[];
+  assignee: User;
+  assignees: User[];
+  milestone: Milestone;
+  locked: boolean;
+  active_lock_reason: string;
+  comments: number;
+  pull_request: PullRequest;
+  closed_at: string;
+  created_at: string;
+  updated_at: string;
+  closed_by: User;
+  author_association: string;
+}
+
+interface User {
+  login: string;
+  id: number;
+  node_id: string;
+  avatar_url: string;
+  gravatar_id: string;
+  url: string;
+  html_url: string;
+  followers_url: string;
+  following_url: string;
+  gists_url: string;
+  starred_url: string;
+  subscriptions_url: string;
+  organizations_url: string;
+  repos_url: string;
+  events_url: string;
+  received_events_url: string;
+  type: string;
+  site_admin: boolean;
+}
 
 // https://docs.github.com/en/rest/reference/issues#list-repository-issues
 // https://octokit.github.io/rest.js/v18
+// https://github.com/DIYgod/RSSHub/blob/5ee16451dcd9abd2a1d5a9c7c8a3b905fc62e50c/lib/v2/github/issue.js
 
 const octokit = new Octokit({
-  auth: process.env.TOKEN
+  auth: process.env.GITHUB_TOKEN,
 });
-const owner = 'xiaotiandada'
-const repo = 'blog'
-const path = 'README.md'
+const owner = 'xiaotiandada';
+const repo = 'blog';
+const path = 'README.md';
+const pathRss = 'rss.yml';
+const newCount = 5;
+const rssSwitch = true;
+const DEV = false;
 
 /**
  * push markdown
  * @param contents 文垱内容
  * @returns
  */
-const push = async (contents: string) => {
+const push = async (contents: string, path: string) => {
   try {
-    const { status, data } = await octokit.repos.getContent({
+    const { status, data: fileData } = await octokit.repos.getContent({
       owner,
       repo,
       path,
     });
-    // console.log(data)
+    console.log(fileData);
 
     if (status !== 200) {
-      console.log('fail', status)
-      return
+      console.log('fail', status);
+      return;
     }
 
-    const contentsBase64 = new Buffer(contents).toString('base64');
-    const { status: pushStatus, data: pushData } = await octokit.repos.createOrUpdateFileContents({
-      owner,
-      repo,
-      path,
-      message: `Update ${Date.now()}`,
-      content: contentsBase64,
-      sha: data.sha,
-    });
+    const contentsBase64 = Buffer.from(contents).toString('base64');
+    const { status: pushStatus, data: pushData } =
+      await octokit.repos.createOrUpdateFileContents({
+        owner,
+        repo,
+        path: path,
+        message: `Update ${Date.now()}`,
+        content: contentsBase64,
+        // @ts-ignore
+        sha: fileData.sha,
+      });
+    console.log(pushStatus, pushData);
     if (pushStatus === 200) {
-    // console.log(pushData)
-      console.log(`push success, url: ${pushData.content.html_url}`)
+      console.log(`push success, url: ${pushData.commit}`);
     } else {
-      console.log('fail', pushStatus)
+      console.log('fail', pushStatus);
     }
-  } catch (e) {
-    console.log('push', e.toString())
+  } catch (e: any) {
+    console.log('push', e.toString());
   }
-}
+};
+
+/**
+ * save Issues Labels
+ * @param labels
+ * @returns
+ */
+const saveIssuesLabels = (labels: Labels[]) => {
+  if (labels.length) {
+    const labelArr = labels.map((item) => item.name);
+    return labelArr.length ? `[${labelArr.join(' ,')}]` : '';
+  } else {
+    return '';
+  }
+};
+
+/**
+ * save Issues
+ * [xxx](xxx) [ xx ]
+ * @param item
+ * @returns
+ */
+const saveIssues = (item: RootInterface) => {
+  return `- [#${item.number} ${item.title}](${
+    item.html_url
+  }) ${saveIssuesLabels(item.labels)} \n`;
+};
+
+/**
+ * generated Top Markdown
+ * @param list
+ * @returns
+ */
+const generatedTopMd = (list: RootInterface[]) => {
+  const topResult = list.filter((item) =>
+    item.labels.find((label) => label.name === 'Top')
+  );
+  if (topResult.length) {
+    let TopMd = `\n## Top\n`;
+
+    topResult.forEach((item) => {
+      TopMd += saveIssues(item);
+    });
+
+    return TopMd;
+  } else {
+    return '';
+  }
+};
+
+/**
+ * generated New Markdown
+ * @param list
+ * @returns
+ */
+const generatedNewMd = (list: RootInterface[]) => {
+  const cloneDeepList = cloneDeep(list) as RootInterface[];
+  // sort updated_at
+  // slice
+  const newResult = cloneDeepList
+    .sort((a, b) => compareAsc(new Date(b.updated_at), new Date(a.updated_at)))
+    .slice(0, newCount);
+  if (newResult.length) {
+    let md = `\n## New\n`;
+
+    newResult.forEach((item) => {
+      md += saveIssues(item);
+    });
+
+    return md;
+  } else {
+    return '';
+  }
+};
+
+/**
+ * generated Article list Markdown
+ * @param list
+ * @returns
+ */
+const generatedArticleListMd = (list: RootInterface[]) => {
+  if (list.length) {
+    let md = `\n## Article list\n`;
+
+    list.forEach((item) => {
+      md += saveIssues(item);
+    });
+
+    return md;
+  } else {
+    return '';
+  }
+};
+
+/**
+ * generated Rss
+ * @param list
+ */
+const generatedRss = (list: RootInterface[]) => {
+  const feed = new Feed({
+    id: 'https://github.com/xiaotiandada/blog',
+    title: 'xiaotiandada/blog Issues',
+    description: 'xiaotiandada/blog Issues',
+    link: 'http://example.com/',
+    language: 'zh-CN', // optional, used only in RSS 2.0, possible values: http://www.w3.org/TR/REC-html40/struct/dirlang.html#langcodes
+    copyright: 'All rights reserved 2022, xiaotian',
+  });
+
+  list.forEach((item) => {
+    feed.addItem({
+      title: item.title,
+      description: item.body ? markdownIt.render(item.body) : 'No description',
+      date: new Date(item.created_at),
+      published: new Date(item.updated_at),
+      link: item.html_url,
+    });
+  });
+
+  // console.log(feed.rss2());
+  const result = feed.rss2();
+
+  if (DEV) {
+    try {
+      const data = fs.writeFileSync('rss.yml', result);
+      //文件写入成功。
+    } catch (err) {
+      console.error(err);
+    }
+  } else {
+    push(result, pathRss);
+  }
+};
+
 /**
  * process markdown
  * @param data issues list
  */
-const processMd = ({data, name, description}: { data: Array<listForRepoType>, name: string, description: string }) => {
-  let md =
-`<div align="center">
-<h1>${name}</h1>
-<p>${description}</p>
-</div>\n\n`
+const processMd = ({ data }: { data: RootInterface[] }) => {
+  // Head
+  let headMd = `## Blog\nMy personal blog using issues and GitHub Actions\n`;
 
-  data.map((i) => {
-    let label = ''
-    let labels: any = i.labels
-    for (let i = 0; i < labels.length; i++) {
-      const ele: { name: string } = labels[i];
-      label += ` ${ele.name} `
+  // Top
+  let TopMd = generatedTopMd(data);
+
+  // New
+  let newMd = generatedNewMd(data);
+
+  // List
+  let listMd = generatedArticleListMd(data);
+
+  const result = headMd + TopMd + newMd + listMd;
+
+  if (DEV) {
+    try {
+      const data = fs.writeFileSync('DEMO.md', result);
+      //文件写入成功。
+    } catch (err) {
+      console.error(err);
     }
-    // [xxx](xxx) [ xx ]
-    md += `[#${i.number} ${i.title}](${i.html_url}) ${ label ? '[' + label + ']' : '' }\n\n`
-  })
-
-  // console.log('md', md)
-  push(md)
-}
+  } else {
+    push(result, path);
+  }
+};
 /**
  * get repo
  */
@@ -87,52 +324,52 @@ const getRepo = async () => {
     });
     if (status === 200) {
       // console.log('data', data)
-      return data
+      return data;
     } else {
-      console.log('fail', status)
-      return false
+      console.log('fail', status);
+      return false;
     }
-  } catch (e) {
-    console.log('getRepo', e.toString())
-    return false
+  } catch (e: any) {
+    console.log('getRepo', e.toString());
+    return false;
   }
-}
+};
 
 /**
  * fetch issues
  */
 const fetch = async () => {
   try {
+    const respo = await getRepo();
+    let count = (respo as any).open_issues_count;
+    let per_page = 100; // default 30 max 100
+    let len = Math.floor(count / per_page) + 1;
 
-    const respo = await getRepo()
-    let count = (respo as any).open_issues_count
-    let per_page = 100 // default 30 max 100
-    let len = Math.floor(count / per_page) + 1
-
-    let list: listForRepoType[] = []
+    let list: RootInterface[] = [];
     for (let i = 1; i <= len; i++) {
       const { status, data } = await octokit.rest.issues.listForRepo({
         owner,
         repo,
         page: i,
-        per_page: per_page
+        per_page: per_page,
       });
       if (status === 200) {
         // console.log('data', data)
-        list.push(...(data as any))
+        list.push(...(data as any));
       } else {
-        console.log('fail', status)
+        console.log('fail', status);
       }
     }
 
-    processMd({
-      data: list,
-      name: (respo as any).name,
-      description: (respo as any).description,
-    })
-  } catch (e) {
-    console.log('fetch', e.toString())
-  }
-}
+    processMd({ data: list });
 
-fetch()
+    if (rssSwitch) {
+      generatedRss(list);
+    }
+  } catch (e: any) {
+    console.log('fetch', e.toString());
+  }
+};
+
+// fetch();
+push('123', '4b2d7792b79173afa9880ed19e57fe82b666a50c');
