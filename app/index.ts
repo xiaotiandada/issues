@@ -1,14 +1,7 @@
 import { Octokit } from '@octokit/rest';
 import { compareAsc } from 'date-fns';
 import { cloneDeep } from 'lodash';
-import { Feed } from 'feed';
-import MarkdownIt = require('markdown-it');
 import * as fs from 'fs';
-
-const markdownIt = new MarkdownIt({
-  html: true,
-  linkify: true,
-});
 
 interface Labels {
   id: number;
@@ -106,9 +99,7 @@ const octokit = new Octokit({
 const owner = 'xiaotiandada';
 const repo = 'blog';
 const path = 'README.md';
-const pathRss = 'rss.yml';
 const newCount = 5;
-const rssSwitch = true;
 const DEV = false;
 
 /**
@@ -123,7 +114,7 @@ const push = async (contents: string, path: string) => {
       repo,
       path,
     });
-    console.log(fileData);
+    // console.log(fileData);
 
     if (status !== 200) {
       console.log('fail', status);
@@ -131,24 +122,21 @@ const push = async (contents: string, path: string) => {
     }
 
     const contentsBase64 = Buffer.from(contents).toString('base64');
-    const { status: pushStatus, data: pushData } =
-      await octokit.repos.createOrUpdateFileContents({
-        owner,
-        repo,
-        path: path,
-        message: `Update ${Date.now()}`,
-        content: contentsBase64,
-        // @ts-ignore
-        sha: fileData.sha,
-      });
-    console.log(pushStatus, pushData);
-    if (pushStatus === 200) {
-      console.log(`push success, url: ${pushData.commit}`);
-    } else {
-      console.log('fail', pushStatus);
-    }
+    const {
+      status: createOrUpdateFileContentsStatus,
+      data: createOrUpdateFileContentsStatusData,
+    } = await octokit.repos.createOrUpdateFileContents({
+      owner,
+      repo,
+      path: path,
+      message: `Update ${Date.now()}`,
+      content: contentsBase64,
+      // @ts-ignore
+      sha: fileData.sha,
+    });
+    console.log(createOrUpdateFileContentsStatus, path);
   } catch (e: any) {
-    console.log('push', e.toString());
+    console.log('push fail, path: ', path);
   }
 };
 
@@ -245,45 +233,6 @@ const generatedArticleListMd = (list: RootInterface[]) => {
 };
 
 /**
- * generated Rss
- * @param list
- */
-const generatedRss = (list: RootInterface[]) => {
-  const feed = new Feed({
-    id: 'https://github.com/xiaotiandada/blog',
-    title: 'xiaotiandada/blog Issues',
-    description: 'xiaotiandada/blog Issues',
-    link: 'http://example.com/',
-    language: 'zh-CN', // optional, used only in RSS 2.0, possible values: http://www.w3.org/TR/REC-html40/struct/dirlang.html#langcodes
-    copyright: 'All rights reserved 2022, xiaotian',
-  });
-
-  list.forEach((item) => {
-    feed.addItem({
-      title: item.title,
-      description: item.body ? markdownIt.render(item.body) : 'No description',
-      date: new Date(item.created_at),
-      published: new Date(item.updated_at),
-      link: item.html_url,
-    });
-  });
-
-  // console.log(feed.rss2());
-  const result = feed.rss2();
-
-  if (DEV) {
-    try {
-      const data = fs.writeFileSync('rss.yml', result);
-      //文件写入成功。
-    } catch (err) {
-      console.error(err);
-    }
-  } else {
-    push(result, pathRss);
-  }
-};
-
-/**
  * process markdown
  * @param data issues list
  */
@@ -336,9 +285,9 @@ const getRepo = async () => {
 };
 
 /**
- * fetch issues
+ * init issues
  */
-const fetch = async () => {
+const init = async () => {
   try {
     const respo = await getRepo();
     let count = (respo as any).open_issues_count;
@@ -362,14 +311,9 @@ const fetch = async () => {
     }
 
     processMd({ data: list });
-
-    if (rssSwitch) {
-      generatedRss(list);
-    }
   } catch (e: any) {
     console.log('fetch', e.toString());
   }
 };
 
-// fetch();
-push('123', '4b2d7792b79173afa9880ed19e57fe82b666a50c');
+init();
