@@ -1,93 +1,8 @@
 import { Octokit } from '@octokit/rest';
-import { compareAsc } from 'date-fns';
+import { compareAsc, format } from 'date-fns';
 import { cloneDeep } from 'lodash';
 import * as fs from 'fs';
-
-interface Labels {
-  id: number;
-  node_id: string;
-  url: string;
-  name: string;
-  description: string;
-  color: string;
-  default: boolean;
-}
-
-interface Milestone {
-  url: string;
-  html_url: string;
-  labels_url: string;
-  id: number;
-  node_id: string;
-  number: number;
-  state: string;
-  title: string;
-  description: string;
-  creator: User;
-  open_issues: number;
-  closed_issues: number;
-  created_at: string;
-  updated_at: string;
-  closed_at: string;
-  due_on: string;
-}
-
-interface PullRequest {
-  url: string;
-  html_url: string;
-  diff_url: string;
-  patch_url: string;
-}
-
-interface RootInterface {
-  id: number;
-  node_id: string;
-  url: string;
-  repository_url: string;
-  labels_url: string;
-  comments_url: string;
-  events_url: string;
-  html_url: string;
-  number: number;
-  state: string;
-  title: string;
-  body: string;
-  user: User;
-  labels: Labels[];
-  assignee: User;
-  assignees: User[];
-  milestone: Milestone;
-  locked: boolean;
-  active_lock_reason: string;
-  comments: number;
-  pull_request: PullRequest;
-  closed_at: string;
-  created_at: string;
-  updated_at: string;
-  closed_by: User;
-  author_association: string;
-}
-
-interface User {
-  login: string;
-  id: number;
-  node_id: string;
-  avatar_url: string;
-  gravatar_id: string;
-  url: string;
-  html_url: string;
-  followers_url: string;
-  following_url: string;
-  gists_url: string;
-  starred_url: string;
-  subscriptions_url: string;
-  organizations_url: string;
-  repos_url: string;
-  events_url: string;
-  received_events_url: string;
-  type: string;
-  site_admin: boolean;
-}
+import { Labels, Milestone, PullRequest, RootInterface, User } from './index.d';
 
 // https://docs.github.com/en/rest/reference/issues#list-repository-issues
 // https://octokit.github.io/rest.js/v18
@@ -155,15 +70,28 @@ const saveIssuesLabels = (labels: Labels[]) => {
 };
 
 /**
+ * format date
+ * @param date
+ * @returns
+ */
+const formatDate = (date: string) => {
+  return format(new Date(date), 'yyyy-MM-dd HH:mm:ss');
+};
+
+/**
  * save Issues
  * [xxx](xxx) [ xx ]
  * @param item
  * @returns
  */
-const saveIssues = (item: RootInterface) => {
-  return `- [#${item.number} ${item.title}](${
-    item.html_url
-  }) ${saveIssuesLabels(item.labels)} \n`;
+const saveIssues = (item: RootInterface, hasTime: boolean = false) => {
+  const title = `[#${item.number} ${item.title}]`;
+  const link = `(${item.html_url})`;
+  const labels = saveIssuesLabels(item.labels);
+
+  const date = hasTime ? ' ' + formatDate(item.updated_at) : '';
+
+  return '- ' + title + link + ' ' + labels + date + '\n';
 };
 
 /**
@@ -204,7 +132,7 @@ const generatedNewMd = (list: RootInterface[]) => {
     let md = `\n## New\n`;
 
     newResult.forEach((item) => {
-      md += saveIssues(item);
+      md += saveIssues(item, true);
     });
 
     return md;
