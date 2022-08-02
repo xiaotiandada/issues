@@ -1,3 +1,5 @@
 node_modules
 app/index.js
 .env
+.parcel-cache
+dist
