@@ -18,7 +18,7 @@ const owner = process.env.OWNER!
 const repo = process.env.REPO!
 const path = process.env.REPO_PATH!
 const newCount = 5
-const IS_DEV = false
+const IS_DEV = true
 
 /**
  * push markdown
@@ -168,7 +168,7 @@ const generatedArticleListMd = (list: RootInterface[]) => {
  * process markdown
  * @param data issues list
  */
-const processMd = ({ data }: { data: RootInterface[] }) => {
+const processMd = ({ data }: { data: RootInterface[] }): string => {
   // Head
   let headMd = `## Blog\nMy personal blog using issues and GitHub Actions\n`
 
@@ -190,12 +190,13 @@ const processMd = ({ data }: { data: RootInterface[] }) => {
     } catch (err) {
       console.error(err)
     }
-  } else {
-    push(result, path)
   }
+  return result
 }
+
 /**
  * get repo
+ * @returns
  */
 const getRepo = async () => {
   try {
@@ -208,18 +209,19 @@ const getRepo = async () => {
       return data
     } else {
       console.log('fail', status)
-      return false
+      return
     }
   } catch (e: any) {
-    console.log('getRepo', e.toString())
-    return false
+    console.log('getRepo fail:', e.toString())
+    return
   }
 }
 
 /**
- * init issues
+ * handle repo data
+ * @returns
  */
-const init = async () => {
+const handleRepoData = async (): Promise<RootInterface[] | undefined> => {
   try {
     const respo = await getRepo()
     let count = (respo as any).open_issues_count
@@ -242,10 +244,26 @@ const init = async () => {
       }
     }
 
-    processMd({ data: list })
+    return list
   } catch (e: any) {
-    console.log('fetch', e.toString())
+    console.log('handleRepoData error:', e.toString())
+    return
   }
 }
 
-init()
+/**
+ * handle issues
+ */
+const handle = async () => {
+  const list = await handleRepoData()
+  if (!list) return
+
+  const md = processMd({ data: list })
+  if (!md) return
+
+  if (!IS_DEV) {
+    push(md, path)
+  }
+}
+
+handle()
