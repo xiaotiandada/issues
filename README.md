@@ -11,7 +11,9 @@ Generate Markdown table of contents through issues [DEMO](./DEMO.md)
 ```bash
 yarn
 
-yarn dev # node ./app/index.js
+yarn build:dev
+
+# node lib/index.js
 ```
 
 ### Build
@@ -19,5 +21,7 @@ yarn dev # node ./app/index.js
 ```bash
 yarn
 
-yarn build # node ./dist/index.js
+yarn build:prod
+
+# node lib/index.js
 ```
