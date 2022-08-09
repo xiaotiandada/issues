@@ -11,7 +11,7 @@
     "build": "rollup --config rollup.config.ts --configPlugin typescript",
     "build:dev": "npm run clean && env_type=development npm run build",
     "build:prod": "npm run clean && env_type=production npm run build",
-    "clean": "rimraf umd"
+    "clean": "rimraf lib"
   },
   "devDependencies": {
     "@parcel/packager-ts": "2.6.2",
@@ -31,6 +31,7 @@
     "@octokit/auth-oauth-user": "^1.2.4",
     "@octokit/rest": "^18.12.0",
     "date-fns": "^2.28.0",
+    "dotenv": "^16.0.1",
     "lodash": "^4.17.21",
     "rss": "^1.2.2"
   }

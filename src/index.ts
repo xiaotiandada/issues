@@ -1,3 +1,6 @@
+import * as dotenv from 'dotenv'
+dotenv.config()
+
 import { Octokit } from '@octokit/rest'
 import { compareAsc, format } from 'date-fns'
 import { cloneDeep } from 'lodash'
@@ -15,7 +18,7 @@ const owner = process.env.OWNER!
 const repo = process.env.REPO!
 const path = process.env.REPO_PATH!
 const newCount = 5
-const DEV = true
+const IS_DEV = false
 
 /**
  * push markdown
@@ -180,7 +183,7 @@ const processMd = ({ data }: { data: RootInterface[] }) => {
 
   const result = headMd + TopMd + newMd + listMd
 
-  if (DEV) {
+  if (IS_DEV) {
     try {
       const data = fs.writeFileSync('DEMO.md', result)
       //文件写入成功。

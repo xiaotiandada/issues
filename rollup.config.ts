@@ -8,7 +8,7 @@ export default {
   output: [
     {
       format: 'cjs',
-      file: 'lib/index.cjs.js',
+      file: 'lib/index.js',
       sourcemap: false,
     },
   ],
