@@ -103,7 +103,7 @@ const saveIssues = (item: RootInterface, hasTime: boolean = false) => {
  * @param list
  * @returns
  */
-const generatedTopMd = (list: RootInterface[]) => {
+const generatedTopMd = (list: RootInterface[]): string => {
   const topResult = list.filter((item) =>
     item.labels.find((label) => label.name === 'Top')
   )
@@ -125,7 +125,7 @@ const generatedTopMd = (list: RootInterface[]) => {
  * @param list
  * @returns
  */
-const generatedNewMd = (list: RootInterface[]) => {
+const generatedNewMd = (list: RootInterface[]): string => {
   const cloneDeepList = cloneDeep(list) as RootInterface[]
   // sort updated_at
   // slice
@@ -150,7 +150,7 @@ const generatedNewMd = (list: RootInterface[]) => {
  * @param list
  * @returns
  */
-const generatedArticleListMd = (list: RootInterface[]) => {
+const generatedArticleListMd = (list: RootInterface[]): string => {
   if (list.length) {
     let md = `\n## Article  📄 \n`
 
@@ -254,7 +254,7 @@ const handleRepoData = async (): Promise<RootInterface[] | undefined> => {
 /**
  * handle issues
  */
-const handle = async () => {
+const handle = async (): Promise<void> => {
   const list = await handleRepoData()
   if (!list) return
 
