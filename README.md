@@ -2,9 +2,9 @@
 
 Generate Markdown table of contents through issues [DEMO](./DEMO.md)
 
-- [x] 所有的 Issues(文章)渲染成目录
-- [x] 最新的 Issues(文章)渲染成目录
-- [x] 置顶的 Issues(文章)渲染成目录
+- [x] 所有的 Issues(文章)渲染成目录（显示 ID + Title + Labels）
+- [x] 最新的 Issues(文章)渲染成目录（显示 ID + Title + Labels + Time）
+- [x] 置顶的 Issues(文章)渲染成目录（显示 ID + Title + Labels）
 - [ ] 目录标题支持中英文
 - [ ] 目录标题 emoji 支持可选
 
